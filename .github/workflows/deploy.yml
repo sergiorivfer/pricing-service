@@ -7,7 +7,7 @@ on:
 
 env:
   REGISTRY: ghcr.io
-  IMAGE_NAME: ${{ github.repository }}
+  IMAGE_NAME: ${{ github.repository_owner_lowercase }}/pricing-service
 
 jobs:
   # ─────────────────────────────────────────────
@@ -78,8 +78,9 @@ jobs:
     if: github.ref == 'refs/heads/main'
     needs: build
     runs-on: ubuntu-latest
-    env:
-      DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
+    permissions:
+      contents: read
+      packages: write
 
     steps:
       - name: Deploy via SSH
@@ -88,12 +89,14 @@ jobs:
           host: ${{ secrets.VM_HOST }}
           username: ${{ secrets.VM_USER }}
           key: ${{ secrets.VM_SSH_KEY }}
-          envs: DB_PASSWORD
+          envs: |
+            DB_PASSWORD
+            GITHUB_TOKEN
           script: |
             set -e
 
             echo "→ Pulling latest image..."
-            echo "${{ secrets.GHCR_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
+            echo "${GITHUB_TOKEN}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
             docker compose -f /opt/pricing-service/docker-compose.prod.yml pull
 
             echo "→ Running database migrations..."
