@@ -228,3 +228,56 @@ describe("edge cases", () => {
     expect(r.items[0].breakdown.locations).toBe(1);
   });
 });
+
+/* ------------------------------------------------------------------ */
+/*  Rescue — coverage gaps from legacy engine                          */
+/* ------------------------------------------------------------------ */
+
+describe("rescue — locations property", () => {
+  it("two locations produce a higher subtotal than one location", () => {
+    const pb: PriceBook = {
+      version: "test.v1",
+      setupCost: 40,
+      applicationPerUnit: 3,
+      baseCosts: { tshirt: 6, hoodie: 14, hat: 10 },
+      zoneRates: { US: 0, default: 0 },
+      profitVariable: [{ max: 49, value: 2.0 }],
+    };
+
+    const baseReq: QuoteRequest = {
+      country: "US",
+      postalCode: "90210",
+      items: [{ pricingCategory: "tshirt", quantity: 24, locations: 1, addOnPerUnit: 0 }],
+    };
+
+    const oneLocation = computeQuote(pb, baseReq);
+
+    const twoLocation = computeQuote(pb, {
+      ...baseReq,
+      items: [{ ...baseReq.items[0], locations: 2 }],
+    });
+
+    expect(twoLocation.subtotal).toBeGreaterThan(oneLocation.subtotal);
+  });
+});
+
+describe("rescue — unlisted postal letter", () => {
+  it("falls to zoneRates.default when first letter is not in zoneRates", () => {
+    const pb: PriceBook = {
+      version: "test.v1",
+      setupCost: 40,
+      applicationPerUnit: 3,
+      baseCosts: { tshirt: 6, hoodie: 14, hat: 10 },
+      zoneRates: { US: 0, E: 2, default: 0 },
+      profitVariable: [{ max: 49, value: 2.0 }],
+    };
+
+    const r = computeQuote(pb, {
+      country: "CA",
+      postalCode: "M5A 1A1",
+      items: [{ pricingCategory: "tshirt", quantity: 24, locations: 1, addOnPerUnit: 0 }],
+    });
+
+    expect(r.items[0].breakdown.postalRatePct).toBe(0);
+  });
+});
