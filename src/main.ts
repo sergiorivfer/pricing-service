@@ -3,14 +3,19 @@ import { env } from "./infrastructure/config/env";
 import { createPool } from "./infrastructure/db/pool";
 import { PostgresPriceBookRepository } from "./infrastructure/repositories/PostgresPriceBookRepository";
 import { readyRoute } from "./infrastructure/http/routes/ready.route";
+import { quoteRoute } from "./infrastructure/http/routes/quote.route";
 
 async function main() {
   const pool = createPool();
-  const _priceBookRepository = new PostgresPriceBookRepository(pool);
+  const priceBookRepository = new PostgresPriceBookRepository(pool);
 
   const app = buildServer();
 
   app.register(readyRoute, { pool });
+  app.register(quoteRoute, {
+    prefix: "/api/v1",
+    priceBookRepository,
+  });
 
   const shutdown = async (signal: string) => {
     app.log.info({ signal }, "Shutting down gracefully");
