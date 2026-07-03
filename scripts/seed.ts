@@ -1,16 +1,18 @@
 import { createPool } from "../src/infrastructure/db/pool";
 import { env } from "../src/infrastructure/config/env";
 
+// Matches the characterization test's PriceBook exactly so
+// `npm run smoke` asserts subtotal === 275.4.
 const SEED: Record<string, unknown> = {
-  version: "1.0",
+  version: "test.v1",
   setup_cost: 40,
   application_per_unit: 3,
-  base_costs: { tshirt: 12, hoodie: 18, hat: 10 },
-  zone_rates: { US: 2, default: 0 },
+  base_costs: { tshirt: 6, hoodie: 14, hat: 10 },
+  zone_rates: { M: 0, V: 0, P: 0, E: 2, R: 2, default: 0, US: 0 },
   profit_variable: [
-    { min: 1, max: 49, value: 2.8 },
-    { min: 50, max: 99, value: 1.8 },
-    { min: 100, value: 1.2 },
+    { max: 49, value: 2.0 },
+    { min: 50, max: 99, value: 1.9 },
+    { min: 100, value: 1.8 },
   ],
   technique_rules: {},
 };
