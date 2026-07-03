@@ -85,27 +85,23 @@ jobs:
     steps:
       - name: Deploy via SSH
         uses: appleboy/ssh-action@v1.2.0
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
         with:
           host: ${{ secrets.VM_HOST }}
           username: ${{ secrets.VM_USER }}
           key: ${{ secrets.VM_SSH_KEY }}
-          envs: |
-            GITHUB_TOKEN
-            DB_PASSWORD
+          envs: DB_PASSWORD
           script: |
             set -e
 
             echo "→ Pulling latest image..."
-            echo "${GITHUB_TOKEN}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
+            echo "*** secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
             docker compose -f /opt/pricing-service/docker-compose.prod.yml pull
 
             echo "→ Running database migrations..."
             docker compose -f /opt/pricing-service/docker-compose.prod.yml run --rm pricing-api npm run migrate
 
             echo "→ Starting services..."
+            export DB_PASSWORD="${DB_PASSWORD}"
             docker compose -f /opt/pricing-service/docker-compose.prod.yml up -d
 
             echo "→ Waiting for API readiness..."
