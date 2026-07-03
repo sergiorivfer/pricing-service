@@ -1,0 +1,93 @@
+name: CI/CD
+
+on:
+  push:
+    branches: [main]
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
+
+jobs:
+  # ─────────────────────────────────────────────
+  #  CI: verify, test & build
+  # ─────────────────────────────────────────────
+  ci:
+    name: CI — Verify & Build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Type check
+        run: npm run typecheck
+
+      - name: Unit tests
+        run: npm run test:unit
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build & push Docker image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: true
+          tags: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest,${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.sha }}
+
+  # ─────────────────────────────────────────────
+  #  CD: deploy to OCI VM
+  # ─────────────────────────────────────────────
+  deploy:
+    name: CD — Deploy to OCI
+    needs: ci
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Deploy via SSH
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: ${{ secrets.VM_HOST }}
+          username: ${{ secrets.VM_USER }}
+          key: ${{ secrets.VM_SSH_KEY }}
+          script: |
+            set -e
+
+            echo "→ Pulling latest image..."
+            echo "${{ secrets.GHCR_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
+            docker compose -f /opt/pricing-service/docker-compose.prod.yml pull
+
+            echo "→ Starting services..."
+            docker compose -f /opt/pricing-service/docker-compose.prod.yml up -d
+
+            echo "→ Waiting for API healthcheck..."
+            for i in $(seq 1 12); do
+              if curl -sf http://localhost:3001/health > /dev/null 2>&1; then
+                echo "✓ API is healthy"
+                break
+              fi
+              echo "  attempt $i/12 — waiting..." && sleep 5
+            done
+
+            echo "→ Cleaning old images..."
+            docker image prune -f --filter "until=24h"
+
+            echo "✓ Deploy complete"
