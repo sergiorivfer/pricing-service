@@ -1,5 +1,4 @@
 import { createPool } from "../src/infrastructure/db/pool";
-import { env } from "../src/infrastructure/config/env";
 
 // Matches the characterization test's PriceBook exactly so
 // `npm run smoke` asserts subtotal === 275.4.

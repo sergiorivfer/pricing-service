@@ -23,7 +23,15 @@ export class PostgresPriceBookRepository implements PriceBookRepository {
     return this.toDomain(rows[0]);
   }
 
-  private toDomain(row: any): PriceBook {
+  private toDomain(row: {
+    version: string;
+    setup_cost: string;
+    application_per_unit: string;
+    base_costs: PriceBook["baseCosts"];
+    zone_rates: PriceBook["zoneRates"];
+    profit_variable: PriceBook["profitVariable"];
+    technique_rules: PriceBook["techniqueRules"];
+  }): PriceBook {
     return {
       version: row.version,
       setupCost: Number(row.setup_cost),

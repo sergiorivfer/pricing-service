@@ -6,7 +6,7 @@ import { readyRoute } from "./infrastructure/http/routes/ready.route";
 
 async function main() {
   const pool = createPool();
-  const priceBookRepository = new PostgresPriceBookRepository(pool);
+  const _priceBookRepository = new PostgresPriceBookRepository(pool);
 
   const app = buildServer();
 

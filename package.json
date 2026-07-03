@@ -13,7 +13,7 @@
     "migrate:down": "DATABASE_URL=$(grep ^DATABASE_URL= .env | cut -d= -f2-) node-pg-migrate down",
     "seed": "tsx --env-file=.env scripts/seed.ts",
     "smoke": "tsx --env-file=.env scripts/smoke.ts",
-    "lint": "eslint . --ext .ts",
+    "lint": "eslint .",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
